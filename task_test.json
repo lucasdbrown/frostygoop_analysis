@@ -1,11 +1,35 @@
 {
-    "Iplist": ["127.0.0.1"],
-    "Tasks": [
-        {
-            "Code": 15,
-            "Address": 0,
-            "Repeat": 10000,
-            "Value": [1, 1, 1, 1, 0, 0, 0, 0]
-        }
-    ]
+  "Iplist": ["127.0.0.1"],
+  "Tasks": [
+    {
+      "Code": 1,
+      "Address": 0,
+      "Repeat": 10000,
+      "Count": 8
+    },
+    {
+      "Code": 3,
+      "Address": 0,
+      "Repeat": 5,
+      "Count": 4
+    },
+    {
+      "Code": 6,
+      "Address": 5,
+      "Repeat": 5,
+      "Value": 1337
+    },
+    {
+      "Code": 15,
+      "Address": 0,
+      "Repeat": 10000,
+      "Value": [1, 1, 1, 1, 0, 0, 0, 0]
+    },
+    {
+      "Code": 16,
+      "Address": 20,
+      "Repeat": 5,
+      "Value": [10, 20, 30, 40]
+    }
+  ]
 }

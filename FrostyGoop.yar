@@ -70,3 +70,33 @@ rule pe_golang {
     condition:
         (uint16(0) == 0x5a4d) and any of them
 }
+
+
+// Created by Nozomi Networks Labs (in their report on FrostyGoop/BUSTLEBERM)
+rule Mal_Hacktool_Win64_Bustleberm {
+    meta:
+        name = "BUSTLEBERM ICS Hacktool"
+        author = "Nozomi Networks Labs"
+        description = "Detects the BUSTLEBERM ICS Hacktool (also known as FrostyGoop)"
+        date = "2024-07-24"
+        tlp = "clear"
+        x_threat_name = "BUSTLEBERM"
+        x_mitre_technique = "T1007, T1012, T1033, T1112, T1543, T0869, T0855"
+        reference = "https://hub.dragos.com/hubfs/Reports/Dragos-FrostyGoop-ICS-Malware-Intel-Brief-0724_.pdf"
+        hash1 = "5d2e4fd08f81e3b2eb2f3eaae16eb32ae02e760afc36fa17f4649322f6da53fb"
+        hash2 = "a63ba88ad869085f1625729708ba65e87f5b37d7be9153b3db1a1b0e3fed309c"
+    strings:
+        $go = "Go build ID:" ascii fullword
+        $modbus_1 = "github.com/rolfl/modbus" ascii fullword
+        $modbus_2 = "\x00main.MbConfig.writeMultiple\x00" ascii
+        $rtn_1 = "\x00main.TaskList.executeCommand\x00" ascii
+        $rtn_2 = "\x00main.TaskList.getTaskIpList\x00" ascii
+        $rtn_3 = "\x00main.TaskList.getIpList\x00" ascii
+        $rtn_4 = "\x00main.TargetList.getTargetIpList\x00" ascii
+    condition:
+        uint16(0) == 0x5a4d and
+        filesize <= 10MB and
+        $go and
+        any of ($modbus_*) and
+        2 of ($rtn_*)
+}
