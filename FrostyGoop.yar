@@ -1,3 +1,7 @@
+// This YARA rule detects Windows executables that embed FrostyGoop’s JSON-style configuration strings. 
+// It is looking for malware samples that include instructions like input-task, input-list, output, and cycle info
+// Ensuring it’s a FrostyGoop binary and not just any random program with "ip" in it.
+// 0x5a4d = "MZ" in ASCII
 rule FrostyGoop {
 meta:
     description = "rule to detect FrostyGoop"
@@ -20,6 +24,8 @@ condition:
         uint16(0) == 0x5a4d and all of them
 }
 
+
+
 // Repo found in: https://github.com/filescanio/fsYara/blob/3d2ddd3c5e11c1eae6817e439f092a6d30ff954d/executable/PE-ELF/generic/mal_go_modbus.yar
 rule MAL_Go_Modbus_Jul24_1 : hardened limited
 {
@@ -33,18 +39,22 @@ rule MAL_Go_Modbus_Jul24_1 : hardened limited
 		hash1 = "5d2e4fd08f81e3b2eb2f3eaae16eb32ae02e760afc36fa17f4649322f6da53fb"
 
 	strings:
-		$a1 = {47 6f 20 62 75 69 6c 64}
-		$sa1 = {67 69 74 68 75 62 2e 63 6f 6d 2f 72 6f 6c 66 6c 2f 6d 6f 64 62 75 73}
-		$sb1 = {6d 61 69 6e 2e 54 61 73 6b 4c 69 73 74 2e 65 78 65 63 75 74 65 43 6f 6d 6d 61 6e 64}
-		$sb2 = {6d 61 69 6e 2e 54 61 72 67 65 74 4c 69 73 74 2e 67 65 74 54 61 72 67 65 74 49 70 4c 69 73 74}
-		$sb3 = {6d 61 69 6e 2e 54 61 73 6b 4c 69 73 74 2e 67 65 74 54 61 73 6b 49 70 4c 69 73 74}
+		$a1 = {47 6f 20 62 75 69 6c 64} // ASCII for "Go Build"
+		$sa1 = {67 69 74 68 75 62 2e 63 6f 6d 2f 72 6f 6c 66 6c 2f 6d 6f 64 62 75 73} // ASCII for "github.com/rolfl/modbus"
+		$sb1 = {6d 61 69 6e 2e 54 61 73 6b 4c 69 73 74 2e 65 78 65 63 75 74 65 43 6f 6d 6d 61 6e 64} // ASCII for "main.TaskList.executeCommand"
+		$sb2 = {6d 61 69 6e 2e 54 61 72 67 65 74 4c 69 73 74 2e 67 65 74 54 61 72 67 65 74 49 70 4c 69 73 74} // ASCII for "main.TargetList.getTargetIpList"
+		$sb3 = {6d 61 69 6e 2e 54 61 73 6b 4c 69 73 74 2e 67 65 74 54 61 73 6b 49 70 4c 69 73 74} // ASCII "main.TaskList.getTaskIpList"
+        // Looks for "main.CycleInfo" surrounded by safe delimiters (to avoid partial matches)
 		$sb4 = {(bf | a1 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 5b | 5c | 5d | 5e | 5f | 60 | 7b | 7c | 7d | 7e | 20 | 09 | 0a | 0d | 0b | 0c | 00 | ff) 6d 61 69 6e 2e 43 79 63 6c 65 49 6e 66 6f (bf | a1 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 5b | 5c | 5d | 5e | 5f | 60 | 7b | 7c | 7d | 7e | 20 | 09 | 0a | 0d | 0b | 0c | 00 | ff)}
-
-	condition:
+    
+    // Only match on binaries < 30 MB (normal for Go malware, but avoids huge files)
+    // Must contain the Modbus import ($sa1) AND at least 3 of the $sb* function strings, if any 4 strings total (from $a1, $sa1, $sb*) are present, it still triggers
+    condition:
 		filesize < 30MB and ( $sa1 and 3 of ( $sb* ) ) or 4 of them
 }
 
-// Repo found in: https://github.com/roadwy/DefenderYara/blob/95d7a68c353d805e68276acd6cf75ec5db4703b4/Trojan/Win64/FrostyGoop/Trojan_Win64_FrostyGoop_AFR_MTB.yar#L2
+// Repo found in: https://github.com/roadwy/DefenderYara/blob/95d7a68c353d805e68276acd6cf75ec5db4703b4/Trojan/Win64/FrostyGoop/Trojan_Win64_FrostyGoop_AFR_MTB.yar
+// binary opcode patterns unique to a FrostyGoop sample
 rule Trojan_Win64_FrostyGoop_AFR_MTB{
 	meta:
 		description = "Trojan:Win64/FrostyGoop.AFR!MTB,SIGNATURE_TYPE_PEHSTR_EXT,01 00 01 00 01 00 00 "
@@ -56,7 +66,10 @@ rule Trojan_Win64_FrostyGoop_AFR_MTB{
  
 }
 
+
+
 // Repo found in: https://github.com/ps-interactive/frostygoop-lab/blob/main/pe_golang.yara
+// the rule triggers if the file is a PE and any one of the three below strings is present.
 rule pe_golang {
     meta:
         author = "The Cyber Yeti"
@@ -73,6 +86,7 @@ rule pe_golang {
 
 
 // Created by Nozomi Networks Labs (in their report on FrostyGoop/BUSTLEBERM)
+// Does a lot of the same as "MAL_Go_Modbus_Jul24_1" just more easy to read and understand looking at wise, since it isn't in ASCII in the rule.
 rule Mal_Hacktool_Win64_Bustleberm {
     meta:
         name = "BUSTLEBERM ICS Hacktool"
