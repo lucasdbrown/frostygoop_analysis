@@ -9,3 +9,12 @@ FrostyGoop Malware Deep Dive Analysis
 3. Code 6 → Writes value 1337 to holding register at address 5 (5 times).
 4. Code 15 → Writes 8 coils at address 10 with pattern [1,1,0,1,0,0,1,1] (5 times).
 5. Code 16 → Writes 4 consecutive holding registers at address 20 with [10,20,30,40] (5 times).
+
+
+## What is "FrostyGoop.yar"?
+This is a `.yar` file with a bunch of YARA rules I found on GitHub and from reports. YARA rules are used to identify files or processes by strings, byte patterns, and conditions. In the security context, they are used to identify malware families, artifacts, and looking for suspicious activity. In `FrostyGoop.yar` I explain in depth on what each of the YARA rules are specifically detecting for.
+
+How to run the FrostyGoop YARA rules to scan through folders and files:
+```sh
+yara FrostyGoop.yar /path/to/samples/
+```
