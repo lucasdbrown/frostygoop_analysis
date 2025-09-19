@@ -1,0 +1,10 @@
+{
+  "Iplist": ["127.0.0.1"],
+  "Tasks": [
+    { "Code": 1,  "Address": 0,  "Count": 8,  "Repeat": 2 },
+    { "Code": 15, "Address": 0,  "Value": [1,1,1,1,0,0,0,0], "Repeat": 2 },
+    { "Code": 3,  "Address": 0,  "Count": 4,  "Repeat": 2 },
+    { "Code": 6,  "Address": 5,  "Value": 1337, "Repeat": 1 },
+    { "Code": 16, "Address": 20, "Value": [10,20,30,40], "Repeat": 1 }
+  ]
+}

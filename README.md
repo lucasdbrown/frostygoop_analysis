@@ -1,6 +1,17 @@
 # frostygoop_analysis
 FrostyGoop Malware Deep Dive Analysis
 
+# Build Instructions
+```sh
+go mod init mymodbuslab
+```
+
+```sh
+go get github.com/rolfl/modbus
+```
+
+
+
 
 
 ## What does task_test.json do?

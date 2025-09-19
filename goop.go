@@ -57,7 +57,7 @@ func taskExec(ip string, tasks []Task, wg *sync.WaitGroup) {
 
 	fmt.Printf("Connecting to Modbus server at %s...\n", ip)
 	// Connect to Modbus TCP server (default port 502)
-	mb, err := modbus.NewTCP(ip + ":502")
+	mb, err := modbus.NewTCP(ip + ":1502")
 	if err != nil {
 		fmt.Printf("Failed to connect to %s: %v\n", ip, err)
 		return
@@ -65,7 +65,7 @@ func taskExec(ip string, tasks []Task, wg *sync.WaitGroup) {
 	defer fmt.Printf("Disconnected from %s\n", ip)
 
 	// Create a Modbus client with unit ID 254 (broadcast or generic device ID)
-	client := mb.GetClient(254)
+	client := mb.GetClient(1)
 	timeout := 5 * time.Second // Timeout for all Modbus operations
 
 	// Loop over each configured task
