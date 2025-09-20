@@ -8,9 +8,41 @@ go mod init mymodbuslab
 
 ```sh
 go get github.com/rolfl/modbus
+go get golang.org/x/crypto/scrypt
 ```
 
+```sh
+go build server.go
+```
 
+```sh 
+./server.exe
+```
+
+```sh
+go build goop.go
+```
+
+```sh
+./client.exe demo.json
+```
+
+## How to use go-encrypt.go
+```sh
+build go-encrypt.go
+```
+
+```sh
+export GO_ENCRYPT_PASSPHRASE="mysupersecretpass"
+```
+
+```sh
+./go-encrypt.exe encrypt test-data.json test-data.encrypted
+```
+
+```sh
+./go-encrypt.exe decrypt test-data.encryped test-data.json
+```
 
 
 

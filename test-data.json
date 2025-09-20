@@ -1,0 +1,12 @@
+{
+  "message": "Hello, this is a test JSON file!",
+  "data": {
+    "numbers": [1, 2, 3, 4, 5],
+    "boolean": true,
+    "nested": {
+      "key": "value",
+      "secret": "This should be encrypted"
+    }
+  },
+  "timestamp": "2025-09-20T15:35:00Z"
+}
