@@ -31,15 +31,18 @@ func main() {
 	}
 	holdings[0] = 1234
 
-	// Coils handler
-	srv.RegisterCoils(1, func(_ modbus.Server, _ modbus.Atomic, address int, values []bool, current []bool) ([]bool, error) {
+	// Register handlers for multiple Unit IDs to ensure compatibility
+	coilHandler := func(_ modbus.Server, _ modbus.Atomic, address int, values []bool, current []bool) ([]bool, error) {
+		log.Printf("Coils request: address=%d, values=%v, current=%v", address, values, current)
 		if len(values) == 0 {
 			// READ request
 			end := address + len(current)
 			if end > len(coils) {
 				return nil, fmt.Errorf("illegal coil read range")
 			}
-			return coils[address:end], nil
+			result := coils[address:end]
+			log.Printf("Coils read result: %v", result)
+			return result, nil
 		}
 		// WRITE request
 		for i, v := range values {
@@ -47,18 +50,22 @@ func main() {
 				coils[address+i] = v
 			}
 		}
-		return coils[address : address+len(values)], nil
-	})
+		result := coils[address : address+len(values)]
+		log.Printf("Coils write result: %v", result)
+		return result, nil
+	}
 
-	// Holdings handler
-	srv.RegisterHoldings(1, func(_ modbus.Server, _ modbus.Atomic, address int, values []int, current []int) ([]int, error) {
+	holdingHandler := func(_ modbus.Server, _ modbus.Atomic, address int, values []int, current []int) ([]int, error) {
+		log.Printf("Holdings request: address=%d, values=%v, current=%v", address, values, current)
 		if len(values) == 0 {
 			// READ request
 			end := address + len(current)
 			if end > len(holdings) {
 				return nil, fmt.Errorf("illegal holding read range")
 			}
-			return holdings[address:end], nil
+			result := holdings[address:end]
+			log.Printf("Holdings read result: %v", result)
+			return result, nil
 		}
 		// WRITE request
 		for i, v := range values {
@@ -66,8 +73,19 @@ func main() {
 				holdings[address+i] = v
 			}
 		}
-		return holdings[address : address+len(values)], nil
-	})
+		result := holdings[address : address+len(values)]
+		log.Printf("Holdings write result: %v", result)
+		return result, nil
+	}
+
+	// Register handlers for Unit IDs 0, 1, and 254 (common defaults)
+	srv.RegisterCoils(0, coilHandler)
+	srv.RegisterCoils(1, coilHandler)
+	srv.RegisterCoils(254, coilHandler)
+	
+	srv.RegisterHoldings(0, holdingHandler)
+	srv.RegisterHoldings(1, holdingHandler)
+	srv.RegisterHoldings(254, holdingHandler)
 
 	// keep HR[1] updating
 	go func() {
@@ -77,7 +95,7 @@ func main() {
 		}
 	}()
 
-	tcpServ, err := modbus.NewTCPServer("127.0.0.1:1502", srv)
+	tcpServ, err := modbus.NewTCPServer("127.0.0.1:1502", modbus.ServeAllUnits(srv))
 	if err != nil {
 		log.Fatalf("NewTCPServer failed: %v", err)
 	}
