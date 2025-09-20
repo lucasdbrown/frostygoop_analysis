@@ -1,45 +1,45 @@
-# frostygoop_analysis
-FrostyGoop Malware Deep Dive Analysis
+# FrostyGoop Malware Deep Dive Analysis
+The client/server does not work on macOS due to `github.com/rolfl/modbus`'s implementation of RTU. Eventhough we are not using the Modbus RTU implementation, the dependency runs it, so it cannot be run on macOS. I would recommend if you are a mac user to get a VM. It only runs on Windows, might applicable with another OS.
 
-# Build Instructions
-```sh
-go mod init mymodbuslab
-```
+## Setting up client/server
 
-```sh
-go get github.com/rolfl/modbus
-go get golang.org/x/crypto/scrypt
-```
-
+Building the server:
 ```sh
 go build server.go
 ```
 
+Running the server:
 ```sh 
 ./server.exe
 ```
 
+Building the Gooper:
 ```sh
 go build goop.go
 ```
 
+Running the Gooper with the json payload:
 ```sh
-./client.exe demo.json
+./goop.exe demo.json
 ```
 
 ## How to use go-encrypt.go
+Build `go-encrypt.exe`:
 ```sh
 build go-encrypt.go
 ```
 
+Entering encryption passphrase:
 ```sh
 export GO_ENCRYPT_PASSPHRASE="mysupersecretpass"
 ```
 
+Encrypting JSON file:
 ```sh
 ./go-encrypt.exe encrypt test-data.json test-data.encrypted
 ```
 
+Decrypting JSON file:
 ```sh
 ./go-encrypt.exe decrypt test-data.encryped test-data.json
 ```
