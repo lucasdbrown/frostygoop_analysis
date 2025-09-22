@@ -57,7 +57,7 @@ func taskExec(ip string, tasks []Task, wg *sync.WaitGroup) {
 
 	fmt.Printf("Connecting to Modbus server at %s...\n", ip)
 	// Connect to Modbus TCP server (default port 502)
-	mb, err := modbus.NewTCP(ip + ":1502")
+	mb, err := modbus.NewTCP(ip + ":502")
 	if err != nil {
 		fmt.Printf("Failed to connect to %s: %v\n", ip, err)
 		return

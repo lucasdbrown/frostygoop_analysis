@@ -95,7 +95,7 @@ func main() {
 		}
 	}()
 
-	tcpServ, err := modbus.NewTCPServer("127.0.0.1:1502", modbus.ServeAllUnits(srv))
+	tcpServ, err := modbus.NewTCPServer("127.0.0.1:502", modbus.ServeAllUnits(srv))
 	if err != nil {
 		log.Fatalf("NewTCPServer failed: %v", err)
 	}
