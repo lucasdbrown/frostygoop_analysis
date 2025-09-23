@@ -9,88 +9,99 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	"golang.org/x/crypto/scrypt"
 )
 
 func main() {
-	if len(os.Args) < 4 {
+	if len(os.Args) < 5 {
 		fmt.Println("Usage:")
-		fmt.Println("  Encrypt: go run go-encrypt.go encrypt <input.json> <output.enc>")
-		fmt.Println("  Decrypt: go run go-encrypt.go decrypt <input.enc> <output.json>")
-		fmt.Println("  Set GO_ENCRYPT_PASSPHRASE (recommended) or GO_ENCRYPT_KEY (32-byte raw, base64)")
+		fmt.Println("  Encrypt: go run go-encrypt.go encrypt <keyfile> <input.json> <output.enc>")
+		fmt.Println("  Decrypt: go run go-encrypt.go decrypt <keyfile> <input.enc> <output.json>")
+		fmt.Println("  Key file must contain exactly 32 bytes for AES-256")
 		os.Exit(1)
 	}
-	op, in, out := os.Args[1], os.Args[2], os.Args[3]
+	op, keyFile, in, out := os.Args[1], os.Args[2], os.Args[3], os.Args[4]
 
-	key, salt, err := loadKey()
+	key, err := loadKeyFromFile(keyFile)
 	if err != nil { fmt.Println("Key error:", err); os.Exit(1) }
 
 	switch op {
 	case "encrypt":
 		pt, err := os.ReadFile(in); if err != nil { fatal(err) }
-		ct, err := encryptGCM(pt, key) ; if err != nil { fatal(err) }
-		// store salt|nonce|ciphertext, all base64
-		payload := append(salt, ct...) // ct already includes nonce|ciphertext
-		if err := os.WriteFile(out, []byte(base64.StdEncoding.EncodeToString(payload)), 0644); err != nil { fatal(err) }
-		fmt.Println("Encrypted:", out)
+		ct, err := encryptCFB(pt, key); if err != nil { fatal(err) }
+		// store IV|ciphertext, all base64
+		if err := os.WriteFile(out, []byte(base64.StdEncoding.EncodeToString(ct)), 0644); err != nil { fatal(err) }
+		fmt.Printf("Successfully encrypted %s to %s using AES-256 CFB with key from %s\n", in, out, keyFile)
 	case "decrypt":
 		dataB64, err := os.ReadFile(in); if err != nil { fatal(err) }
-		payload, err := base64.StdEncoding.DecodeString(string(dataB64)); if err != nil { fatal(err) }
-		if len(payload) < 16 { fatal(errors.New("payload too short")) }
-		salt := payload[:16]
-		key, err = deriveFromPassOrEnv(salt) // re-derive with same salt
-		if err != nil { fatal(err) }
-		pt, err := decryptGCM(payload[16:], key); if err != nil { fatal(err) }
+		ct, err := base64.StdEncoding.DecodeString(string(dataB64)); if err != nil { fatal(err) }
+		pt, err := decryptCFB(ct, key); if err != nil { fatal(err) }
 		if err := os.WriteFile(out, pt, 0644); err != nil { fatal(err) }
-		fmt.Println("Decrypted:", out)
+		fmt.Printf("Successfully decrypted %s to %s using AES-256 CFB with key from %s\n", in, out, keyFile)
 	default:
 		fmt.Println("op must be encrypt|decrypt")
 	}
 }
 
-func loadKey() (key, salt []byte, err error) {
-	// Preferred: passphrase + scrypt (automatic, integrity-safe with GCM)
-	if os.Getenv("GO_ENCRYPT_PASSPHRASE") != "" {
-		salt = make([]byte, 16)
-		if _, err = io.ReadFull(rand.Reader, salt); err != nil { return nil, nil, err }
-		key, err = deriveFromPassOrEnv(salt)
-		return key, salt, err
+func loadKeyFromFile(keyFile string) ([]byte, error) {
+	key, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key file %s: %v", keyFile, err)
 	}
-	// Fallback: raw 32-byte key via base64 env
-	if v := os.Getenv("GO_ENCRYPT_KEY"); v != "" {
-		raw, err := base64.StdEncoding.DecodeString(v)
-		if err != nil || len(raw) != 32 {
-			return nil, nil, errors.New("GO_ENCRYPT_KEY must be base64-encoded 32 bytes")
-		}
-		return raw, make([]byte, 16), nil // dummy salt for layout
+	
+	if len(key) != 32 {
+		return nil, fmt.Errorf("key file must contain exactly 32 bytes, got %d bytes", len(key))
 	}
-	return nil, nil, errors.New("set GO_ENCRYPT_PASSPHRASE or GO_ENCRYPT_KEY")
+	
+	return key, nil
 }
 
-func deriveFromPassOrEnv(salt []byte) ([]byte, error) {
-	pass := os.Getenv("GO_ENCRYPT_PASSPHRASE")
-	if pass == "" { return nil, errors.New("missing GO_ENCRYPT_PASSPHRASE") }
-	// N,r,p tuned for CLI use; adjust upward for more security
-	return scrypt.Key([]byte(pass), salt, 1<<15, 8, 1, 32)
+func encryptCFB(plaintext, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Generate a random IV (Initialization Vector) for CFB mode
+	iv := make([]byte, aes.BlockSize)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, err
+	}
+	
+	// Create CFB stream
+	stream := cipher.NewCFBEncrypter(block, iv)
+	
+	// Encrypt the data
+	ciphertext := make([]byte, len(plaintext))
+	stream.XORKeyStream(ciphertext, plaintext)
+	
+	// Combine IV and ciphertext for storage
+	// Format: IV (16 bytes) + Ciphertext
+	return append(iv, ciphertext...), nil
 }
 
-func encryptGCM(plaintext, key []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key); if err != nil { return nil, err }
-	gcm, err := cipher.NewGCM(block); if err != nil { return nil, err }
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil { return nil, err }
-	// output: nonce | ciphertext|tag
-	out := gcm.Seal(nil, nonce, plaintext, nil)
-	return append(nonce, out...), nil
-}
-
-func decryptGCM(in, key []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key); if err != nil { return nil, err }
-	gcm, err := cipher.NewGCM(block); if err != nil { return nil, err }
-	if len(in) < gcm.NonceSize() { return nil, errors.New("ciphertext too short") }
-	nonce, ct := in[:gcm.NonceSize()], in[gcm.NonceSize():]
-	return gcm.Open(nil, nonce, ct, nil)
+func decryptCFB(in, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Check minimum length (IV + at least 1 byte of data)
+	if len(in) < aes.BlockSize+1 {
+		return nil, errors.New("encrypted data too short")
+	}
+	
+	// Extract IV and ciphertext
+	iv := in[:aes.BlockSize]
+	ciphertext := in[aes.BlockSize:]
+	
+	// Create CFB stream
+	stream := cipher.NewCFBDecrypter(block, iv)
+	
+	// Decrypt the data
+	plaintext := make([]byte, len(ciphertext))
+	stream.XORKeyStream(plaintext, ciphertext)
+	
+	return plaintext, nil
 }
 
 func fatal(err error) { fmt.Fprintln(os.Stderr, err); os.Exit(1) }

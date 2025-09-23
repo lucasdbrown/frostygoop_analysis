@@ -26,23 +26,28 @@ Running the Gooper with the json payload:
 ## How to use go-encrypt.go
 Build `go-encrypt.exe`:
 ```sh
-build go-encrypt.go
+go build go-encrypt.go
 ```
 
-Entering encryption passphrase:
+Encrypting JSON file with key file:
 ```sh
-export GO_ENCRYPT_PASSPHRASE="mysupersecretpass"
+./go-encrypt.exe encrypt keyfile test-data.json test-data.encrypted
 ```
 
-Encrypting JSON file:
+Decrypting JSON file with key file:
 ```sh
-./go-encrypt.exe encrypt test-data.json test-data.encrypted
+./go-encrypt.exe decrypt keyfile test-data.encrypted test-data-decrypted.json
 ```
 
-Decrypting JSON file:
-```sh
-./go-encrypt.exe decrypt test-data.encryped test-data.json
-```
+**Key File Requirements:**
+- Must contain exactly 32 bytes for AES-256 encryption
+- Can be any 32-byte file (binary or text)
+- Example: The included `keyfile` file contains 32 ASCII characters
+
+**Encryption Details:**
+- Uses AES-256 in Cipher Feedback Mode (CFB)
+- Random IV (Initialization Vector) generated for each encryption
+- Base64 encoded output for safe file storage
 
 
 
